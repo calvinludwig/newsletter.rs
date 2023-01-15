@@ -1,14 +1,16 @@
-use newsletter::run;
+use newsletter::configuration::get_configuration;
+use newsletter::startup::run;
+use sqlx::PgPool;
 use std::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let listener = match TcpListener::bind("127.0.0.1:8000") {
-        Ok(v) => v,
-        Err(e) => {
-            panic!("Error: {e:?}")
-        }
-    };
+    let configuration = get_configuration().expect("Failed to read configuration.");
+    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+        .await
+        .expect("Failed to connect to Database");
+    let address = format!("127.0.0.1:{}", configuration.application_port);
+    let listener = TcpListener::bind(address)?;
 
-    run(listener)?.await
+    run(listener, connection_pool)?.await
 }
