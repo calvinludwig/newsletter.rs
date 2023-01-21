@@ -1,5 +1,4 @@
 use newsletter::{configuration, startup, telemetry};
-use secrecy::ExposeSecret;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::TcpListener, time::Duration};
 
@@ -11,8 +10,7 @@ async fn main() -> std::io::Result<()> {
     let configuration = configuration::get_configuration().expect("Failed to read configuration.");
     let connection_pool = PgPoolOptions::new()
         .connect_timeout(Duration::from_secs(2))
-        .connect_lazy(configuration.database.connection_string().expose_secret())
-        .expect("Failed to connect to Database");
+        .connect_lazy_with(configuration.database.with_db());
 
     let address = format!(
         "{}:{}",

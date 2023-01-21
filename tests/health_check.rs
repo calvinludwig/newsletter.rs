@@ -2,7 +2,6 @@ use newsletter::configuration::DatabaseSettings;
 use newsletter::startup;
 use newsletter::{configuration, telemetry};
 use once_cell::sync::Lazy;
-use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
@@ -32,7 +31,6 @@ async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{port}");
-
     let mut configuration =
         configuration::get_configuration().expect("Failed to read configuration.");
     configuration.database.database_name = Uuid::new_v4().to_string();
@@ -47,15 +45,15 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(&config.connection_string_without_db().expose_secret())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
-        .expect("Failed to connect to Postgres instance.");
+        .expect("Failed to connect to Postgres.");
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPool::connect(&config.connection_string().expose_secret())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
 
@@ -91,7 +89,7 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
     let configuration = configuration::get_configuration().expect("Faile to read configuration");
-    let mut connection = PgConnection::connect(&configuration.database.connection_string().expose_secret())
+    let mut connection = PgConnection::connect_with(&configuration.database.with_db())
         .await
         .expect("Failed to connect to Database");
 
