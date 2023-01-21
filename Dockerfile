@@ -1,9 +1,17 @@
-FROM rust:1.66.1 AS builder
+FROM lukemathwalker/cargo-chef:latest-rust-1.66.1 as chef
 WORKDIR /app
 RUN apt update && apt install lld clang -y
+
+FROM chef as planner
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . . 
 ENV SQLX_OFFLINE true
-RUN cargo build --release
+RUN cargo build --release --bin newsletter
 
 
 FROM debian:bullseye-slim AS runtime
