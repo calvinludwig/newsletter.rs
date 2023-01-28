@@ -1,13 +1,30 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{postgres::{PgConnectOptions, PgSslMode}, ConnectOptions};
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 use std::env;
+
+use crate::domain::SubscriberEmail;
 
 #[derive(Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
+}
+
+#[derive(Deserialize)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+}
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
 }
 
 #[derive(Deserialize)]
@@ -41,6 +58,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     settings.merge(
         config::File::from(configuration_directory.join(environment.as_str())).required(true),
     )?;
+
     settings.merge(config::Environment::with_prefix("app").separator("__"))?;
     settings.try_into()
 }
