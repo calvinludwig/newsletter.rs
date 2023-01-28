@@ -14,8 +14,8 @@ name = "newsletter"
 actix-web = "4.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.11", default-features = false, features = [
-	"json",
-	"rustls-tls",
+  "json",
+  "rustls-tls",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde-aux = "3"
@@ -35,13 +35,13 @@ unicode-segmentation = "1.10"
 version = "0.5"
 default-features = false
 features = [
-	"runtime-actix-rustls",
-	"macros",
-	"postgres",
-	"uuid",
-	"chrono",
-	"migrate",
-	"offline",
+  "runtime-actix-rustls",
+  "macros",
+  "postgres",
+  "uuid",
+  "chrono",
+  "migrate",
+  "offline",
 ]
 
 [dev-dependencies]
