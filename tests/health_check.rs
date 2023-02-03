@@ -1,4 +1,5 @@
 use newsletter::configuration::DatabaseSettings;
+use newsletter::email_client::EmailClient;
 use newsletter::startup;
 use newsletter::{configuration, telemetry};
 use once_cell::sync::Lazy;
@@ -36,7 +37,21 @@ async fn spawn_app() -> TestApp {
 	configuration.database.database_name = Uuid::new_v4().to_string();
 	let connection_pool = configure_database(&configuration.database).await;
 
-	let server = startup::run(listener, connection_pool.clone()).expect("Failed to bind address.");
+	let sender_email = configuration
+		.email_client
+		.sender()
+		.expect("Invalid sender email address.");
+	let timeout = configuration.email_client.timeout();
+	let email_client = EmailClient::new(
+		configuration.email_client.base_url,
+		sender_email,
+		configuration.email_client.authorization_token,
+		timeout,
+	);
+
+	let server = startup::run(listener, connection_pool.clone(), email_client)
+		.expect("Failed to bind address.");
+
 	tokio::spawn(server);
 	TestApp {
 		address,
@@ -164,8 +179,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
 		assert_eq!(
 			400,
 			response.status().as_u16(),
-			"The API did not return a 400 Bad Request when the payload was {}.",
-			description
+			"The API did not return a 400 Bad Request when the payload was {description}."
 		)
 	}
 }
